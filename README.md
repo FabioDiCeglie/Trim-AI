@@ -33,6 +33,35 @@ Built on **Cloudflare Workers** (backend) + **React + Cloudflare Pages** (fronte
 
 ---
 
+## AI-Powered Explanations (MVP)
+
+Every wasteful resource includes an **AI-generated explanation** that helps users understand:
+
+- **Why it's wasteful** — Clear, natural language explanation of the waste reason
+- **How much it costs** — Monthly cost impact
+- **What to do** — Actionable recommendation (e.g., "Delete this VM or detach the disk to stop $8/month charges")
+
+**Example:**
+```json
+{
+  "id": "vm-123",
+  "name": "staging-api",
+  "status": "waste",
+  "waste_reason": "stopped",
+  "ai_explanation": "This VM has been stopped for 23 days but still costs $8/month for the attached 50GB disk. You can delete the VM or detach the disk to stop charges."
+}
+```
+
+**Implementation:**
+- Uses **Cloudflare Workers AI** (llama-3.1-8b) — same model as flavor-bridge-engine
+- Explanations are cached in KV (24h TTL) to avoid regenerating for the same resource
+- Only generated for resources with `waste_reason != "none"`
+- Adds an `ai_explanation` field to the Resource object returned by `/api/v1/{provider}/compute`
+
+This makes Trim immediately actionable — users don't just see waste flags, they understand *why* something is wasteful and *what to do about it*.
+
+---
+
 ## Architecture
 
 ```
@@ -88,7 +117,8 @@ Built on **Cloudflare Workers** (backend) + **React + Cloudflare Pages** (fronte
 
 | Layer | Technology |
 |---|---|
-| Backend | Cloudflare Workers (TypeScript) |
+| Backend | Cloudflare Workers (Python) |
+| AI | Cloudflare Workers AI (llama-3.1-8b) — waste explanations |
 | Credential storage | Cloudflare KV |
 | Frontend | React 18 + Vite + TypeScript |
 | Styling | Tailwind CSS + shadcn/ui |
@@ -170,6 +200,7 @@ trim/
   - [ ] `GET /api/gcp/compute` — idle VMs, unattached disks, unused IPs
   - [ ] `GET /api/gcp/metrics` — CPU/RAM time-series
   - [ ] `GET /api/gcp/billing` — cost breakdown + anomalies
+  - [ ] AI explanations — Workers AI generates `ai_explanation` field for wasteful resources (cached in KV, 24h TTL)
   - [ ] Onboarding Step 1 — provider selector UI (GCP / AWS / Azure / K8s cards)
   - [ ] Onboarding Step 2 — provider-specific credential form (GCP JSON upload, AWS keys, etc.)
   - [ ] Onboarding Step 3 — project selector after successful connection
@@ -331,4 +362,26 @@ The connection flow is provider-agnostic and built into the dashboard:
 ## Multi-Cloud Design Principle
 
 The Worker is built provider-agnostic from day one. Each cloud provider lives in `worker/src/providers/<provider>/` and implements the shared `CloudProvider` interface. The router, KV storage, and encryption layer are completely provider-unaware — adding AWS/Azure is a drop-in module with zero changes to the core.
-# Trim-AI
+
+---
+
+## Future: Auto-Remediation & AI Agents
+
+**Phase 2: One-Click Actions**
+- "Delete this stopped VM" button → Worker calls GCP API directly
+- "Detach this disk" button → Worker detaches it
+- User approves each action before execution
+
+**Phase 3: AI Agent Auto-Fix**
+- **Google ADK Agent** integration — conversational interface for waste remediation
+- Natural language commands: *"Hey Trim, delete all stopped VMs in staging"*
+- Agent executes fixes via GCP APIs with built-in safety checks
+- Dry-run mode: Preview changes before applying
+- Safety rules: Never touch resources tagged `production` or `critical`
+- Rollback capability: Track deletions, restore if needed
+
+**Hybrid Approach:**
+- Direct API calls for UI buttons (fast, programmatic)
+- ADK agent for conversational automation (natural language, complex workflows)
+
+This would transform Trim from "detect and explain" to "detect, explain, and fix automatically" — making it a true cost-saving agent.
