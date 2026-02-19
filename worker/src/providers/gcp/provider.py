@@ -1,27 +1,37 @@
+import js
+import json
+from pyodide.ffi import to_js
 from providers.base import CloudProvider
+from providers.gcp.auth import GCPAuthService
 
 
 class GCPProvider(CloudProvider):
     """
     Google Cloud provider — implements the four core data-fetching methods.
-
-    Each method returns normalized dicts that the router sends straight to the frontend.
-    Real GCP API calls will be added to each method in subsequent steps.
+    Each method gets a fresh access token, calls the relevant GCP API,
+    and returns normalized dicts the router sends straight to the frontend.
     """
 
-    def __init__(self, credentials: dict):
-        """
-        Initialize with decrypted GCP Service Account credentials.
+    BASE = "https://cloudresourcemanager.googleapis.com"
 
-        credentials keys: type, project_id, private_key, client_email
-        (standard fields from a GCP Service Account JSON file)
-        """
+    def __init__(self, credentials: dict):
         self._creds = credentials
         self._project_id = credentials.get("project_id", "")
+        self._auth = GCPAuthService(credentials)
 
     async def get_projects(self) -> list[dict]:
         """List GCP projects accessible with these credentials."""
-        return [{"id": self._project_id, "name": self._project_id, "provider": "gcp"}]
+        token = await self._auth.get_access_token()
+        resp = await js.fetch(
+            f"{self.BASE}/v1/projects",
+            to_js({"headers": {"Authorization": f"Bearer {token}"}}, dict_converter=js.Object.fromEntries),
+        )
+        data = json.loads(await resp.text())
+        projects = data.get("projects", [])
+        return [
+            {"id": p["projectId"], "name": p.get("name", p["projectId"]), "provider": "gcp"}
+            for p in projects
+        ]
 
     async def get_compute(self) -> list[dict]:
         """Return VMs, unattached disks, and unused static IPs — flagging wasteful ones."""
