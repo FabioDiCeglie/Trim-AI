@@ -3,24 +3,41 @@ import json
 from pyodide.ffi import to_js
 
 COMPUTE_BASE = "https://compute.googleapis.com/compute/v1"
+SQL_BASE = "https://sqladmin.googleapis.com/v1"
+STORAGE_BASE = "https://storage.googleapis.com/storage/v1"
+FUNCTIONS_BASE = "https://cloudfunctions.googleapis.com/v1"
+BIGQUERY_BASE = "https://bigquery.googleapis.com/bigquery/v2"
 
 
-async def list_instances(project_id: str, token: str) -> list[dict]:
+async def _fetch_gcp_api(url: str, token: str, api_name: str = "GCP API") -> dict:
     """
-    Fetch all VM instances across all zones using the aggregatedList API.
-    Flags stopped VMs as waste — they still charge for attached disks and reserved IPs.
+    Generic helper to fetch from any GCP API with consistent error handling.
+    Returns parsed JSON data, or empty dict if API is not enabled.
     """
-    url = f"{COMPUTE_BASE}/projects/{project_id}/aggregated/instances"
     resp = await js.fetch(
         url,
         to_js({"headers": {"Authorization": f"Bearer {token}"}}, dict_converter=js.Object.fromEntries),
     )
     raw = await resp.text()
     if not raw.strip():
-        raise Exception("Empty response from GCP Compute API — check service account permissions (needs Compute Viewer role)")
+        return {}
+    
     data = json.loads(raw)
     if "error" in data:
-        raise Exception(f"GCP Compute API error: {data['error'].get('message', data['error'])}")
+        error_msg = str(data.get("error", {})).lower()
+        if "not enabled" in error_msg or "not been used" in error_msg:
+            return {}  # API not enabled, skip gracefully
+        raise Exception(f"{api_name} error: {data['error'].get('message', data['error'])}")
+    
+    return data
+
+
+async def list_instances(project_id: str, token: str) -> list[dict]:
+    """Fetch all VM instances across all zones. Flags stopped VMs as waste."""
+    url = f"{COMPUTE_BASE}/projects/{project_id}/aggregated/instances"
+    data = await _fetch_gcp_api(url, token, "GCP Compute API")
+    if not data:
+        return []
 
     instances = []
     for zone_data in data.get("items", {}).values():
@@ -55,21 +72,11 @@ def _parse_machine_type(mt_url: str) -> str:
 
 
 async def list_disks(project_id: str, token: str) -> list[dict]:
-    """
-    Fetch all persistent disks across all zones.
-    Flags unattached disks as waste — they cost money but aren't being used.
-    """
+    """Fetch all persistent disks. Flags unattached disks as waste."""
     url = f"{COMPUTE_BASE}/projects/{project_id}/aggregated/disks"
-    resp = await js.fetch(
-        url,
-        to_js({"headers": {"Authorization": f"Bearer {token}"}}, dict_converter=js.Object.fromEntries),
-    )
-    raw = await resp.text()
-    if not raw.strip():
+    data = await _fetch_gcp_api(url, token, "GCP Compute API")
+    if not data:
         return []
-    data = json.loads(raw)
-    if "error" in data:
-        raise Exception(f"GCP Compute API error: {data['error'].get('message', data['error'])}")
 
     disks = []
     for zone_data in data.get("items", {}).values():
@@ -95,21 +102,11 @@ async def list_disks(project_id: str, token: str) -> list[dict]:
 
 
 async def list_addresses(project_id: str, token: str) -> list[dict]:
-    """
-    Fetch all static external IP addresses (reserved but may be unassigned).
-    Flags unused IPs as waste — they cost money even if not assigned to a VM.
-    """
+    """Fetch all static external IP addresses. Flags unused IPs as waste."""
     url = f"{COMPUTE_BASE}/projects/{project_id}/aggregated/addresses"
-    resp = await js.fetch(
-        url,
-        to_js({"headers": {"Authorization": f"Bearer {token}"}}, dict_converter=js.Object.fromEntries),
-    )
-    raw = await resp.text()
-    if not raw.strip():
+    data = await _fetch_gcp_api(url, token, "GCP Compute API")
+    if not data:
         return []
-    data = json.loads(raw)
-    if "error" in data:
-        raise Exception(f"GCP Compute API error: {data['error'].get('message', data['error'])}")
 
     addresses = []
     for region_data in data.get("items", {}).values():
@@ -140,26 +137,11 @@ def _parse_region(region_url: str) -> str:
 
 
 async def list_cloud_run_services(project_id: str, token: str) -> list[dict]:
-    """
-    Fetch all Cloud Run services across all regions.
-    Flags wasteful services:
-    - min instances > 0 but no traffic (paying for idle)
-    - Over-provisioned memory/CPU limits
-    """
+    """Fetch all Cloud Run services. Flags services with min_instances > 0 as waste."""
     url = f"https://run.googleapis.com/v1/projects/{project_id}/locations/-/services"
-    resp = await js.fetch(
-        url,
-        to_js({"headers": {"Authorization": f"Bearer {token}"}}, dict_converter=js.Object.fromEntries),
-    )
-    raw = await resp.text()
-    if not raw.strip():
+    data = await _fetch_gcp_api(url, token, "GCP Cloud Run API")
+    if not data:
         return []
-    data = json.loads(raw)
-    if "error" in data:
-        # Cloud Run API might not be enabled, that's okay
-        if "not enabled" in str(data.get("error", {})).lower():
-            return []
-        raise Exception(f"GCP Cloud Run API error: {data['error'].get('message', data['error'])}")
 
     services = []
     for service in data.get("items", []):
@@ -207,3 +189,164 @@ async def list_cloud_run_services(project_id: str, token: str) -> list[dict]:
         })
 
     return services
+
+
+async def list_cloud_sql_instances(project_id: str, token: str) -> list[dict]:
+    """Fetch all Cloud SQL instances. Flags stopped instances as waste."""
+    url = f"{SQL_BASE}/projects/{project_id}/instances"
+    data = await _fetch_gcp_api(url, token, "GCP Cloud SQL API")
+    if not data:
+        return []
+
+    instances = []
+    for db in data.get("items", []):
+        name = db.get("name", "")
+        region = db.get("region", "")
+        state = db.get("state", "")
+        settings = db.get("settings", {})
+        tier = settings.get("tier", "")
+        data_disk_size_gb = settings.get("dataDiskSizeGb", 0)
+        data_disk_type = settings.get("dataDiskType", "")
+        
+        # Check if instance is stopped or in maintenance
+        is_stopped = state != "RUNNABLE"
+        
+        instances.append({
+            "id": str(db.get("id", "")),
+            "name": name,
+            "provider": "gcp",
+            "resource_type": "cloud-sql",
+            "region": region,
+            "status": "waste" if is_stopped else "healthy",
+            "waste_reason": "stopped" if is_stopped else "none",
+            "recommended_action": "Delete or start the instance" if is_stopped else "",
+            "tier": tier,
+            "disk_size_gb": data_disk_size_gb,
+            "disk_type": data_disk_type,
+            "state": state,
+        })
+
+    return instances
+
+
+async def list_storage_buckets(project_id: str, token: str) -> list[dict]:
+    """Fetch all Cloud Storage buckets. Flags Standard class buckets as potential waste."""
+    url = f"{STORAGE_BASE}/b?project={project_id}"
+    data = await _fetch_gcp_api(url, token, "GCP Storage API")
+    if not data:
+        return []
+
+    buckets = []
+    for bucket in data.get("items", []):
+        name = bucket.get("name", "")
+        location = bucket.get("location", "")
+        storage_class = bucket.get("storageClass", "STANDARD")
+        created = bucket.get("timeCreated", "")
+        
+        # Flag Standard class buckets as potential waste (could use cheaper Nearline/Coldline)
+        # This is a simple heuristic - in reality we'd need to check access patterns
+        is_waste = storage_class == "STANDARD" and created  # Could be improved with access time analysis
+        
+        buckets.append({
+            "id": name,  # Bucket name is unique
+            "name": name,
+            "provider": "gcp",
+            "resource_type": "storage-bucket",
+            "region": location,
+            "status": "warning" if is_waste else "healthy",
+            "waste_reason": "wrong-storage-class" if is_waste else "none",
+            "recommended_action": "Consider Nearline or Coldline storage class for infrequently accessed data" if is_waste else "",
+            "storage_class": storage_class,
+            "created": created,
+        })
+
+    return buckets
+
+
+async def list_cloud_functions(project_id: str, token: str) -> list[dict]:
+    """Fetch all Cloud Functions (Gen 1). Would need metrics to detect unused ones."""
+    url = f"{FUNCTIONS_BASE}/projects/{project_id}/locations/-/functions"
+    data = await _fetch_gcp_api(url, token, "GCP Cloud Functions API")
+    if not data:
+        return []
+
+    functions = []
+    for func in data.get("functions", []):
+                name = func.get("name", "").split("/")[-1]
+                region = func.get("name", "").split("/")[3] if "/" in func.get("name", "") else "unknown"
+                runtime = func.get("runtime", "")
+                available_memory_mb = func.get("availableMemoryMb", 256)
+                timeout = func.get("timeout", "")
+                
+                functions.append({
+                    "id": func.get("name", ""),
+                    "name": name,
+                    "provider": "gcp",
+                    "resource_type": "cloud-function",
+                    "region": region,
+                    "status": "healthy",  # Would need metrics to detect unused
+                    "waste_reason": "none",
+                    "recommended_action": "",
+                    "runtime": runtime,
+                    "memory_mb": available_memory_mb,
+                    "timeout": timeout,
+                })
+    
+    return functions
+
+
+async def list_load_balancers(project_id: str, token: str) -> list[dict]:
+    """Fetch all Load Balancers. Flags unused ones (no backends) as waste."""
+    url = f"{COMPUTE_BASE}/projects/{project_id}/global/backendServices"
+    data = await _fetch_gcp_api(url, token, "GCP Compute API")
+    if not data:
+        return []
+
+    load_balancers = []
+    for lb in data.get("items", []):
+        name = lb.get("name", "")
+        backends = lb.get("backends", [])
+        is_unused = len(backends) == 0
+        
+        load_balancers.append({
+            "id": str(lb.get("id", "")),
+            "name": name,
+            "provider": "gcp",
+            "resource_type": "load-balancer",
+            "region": "global",
+            "status": "waste" if is_unused else "healthy",
+            "waste_reason": "unused" if is_unused else "none",
+            "recommended_action": "Delete this load balancer" if is_unused else "",
+            "backend_count": len(backends),
+        })
+
+    return load_balancers
+
+
+async def list_bigquery_datasets(project_id: str, token: str) -> list[dict]:
+    """Fetch all BigQuery datasets. Would need query metrics to detect unused ones."""
+    url = f"{BIGQUERY_BASE}/projects/{project_id}/datasets"
+    data = await _fetch_gcp_api(url, token, "GCP BigQuery API")
+    if not data:
+        return []
+
+    datasets = []
+    for dataset in data.get("datasets", []):
+        ref = dataset.get("datasetReference", {})
+        name = ref.get("datasetId", "")
+        location = dataset.get("location", "")
+        created = dataset.get("creationTime", "")
+        
+        datasets.append({
+            "id": f"{project_id}:{name}",
+            "name": name,
+            "provider": "gcp",
+            "resource_type": "bigquery-dataset",
+            "region": location,
+            "status": "healthy",  # Would need query metrics to detect unused
+            "waste_reason": "none",
+            "recommended_action": "",
+            "created": created,
+        })
+
+    return datasets

@@ -3,7 +3,17 @@ import json
 from pyodide.ffi import to_js
 from providers.base import CloudProvider
 from providers.gcp.auth import GCPAuthService
-from providers.gcp.compute import list_instances, list_disks, list_addresses, list_cloud_run_services
+from providers.gcp.compute import (
+    list_instances,
+    list_disks,
+    list_addresses,
+    list_cloud_run_services,
+    list_cloud_sql_instances,
+    list_storage_buckets,
+    list_cloud_functions,
+    list_load_balancers,
+    list_bigquery_datasets,
+)
 
 
 class GCPProvider(CloudProvider):
@@ -35,13 +45,21 @@ class GCPProvider(CloudProvider):
         ]
 
     async def get_compute(self) -> list[dict]:
-        """Return VMs, unattached disks, unused static IPs, and Cloud Run services — flagging wasteful ones."""
+        """
+        Return all GCP resources — VMs, disks, IPs, Cloud Run, Cloud SQL, Storage,
+        Cloud Functions, Load Balancers, and BigQuery — flagging wasteful ones.
+        """
         token = await self._auth.get_access_token()
         vms = await list_instances(self._project_id, token)
         disks = await list_disks(self._project_id, token)
         ips = await list_addresses(self._project_id, token)
         cloud_run = await list_cloud_run_services(self._project_id, token)
-        return vms + disks + ips + cloud_run
+        cloud_sql = await list_cloud_sql_instances(self._project_id, token)
+        storage = await list_storage_buckets(self._project_id, token)
+        functions = await list_cloud_functions(self._project_id, token)
+        load_balancers = await list_load_balancers(self._project_id, token)
+        bigquery = await list_bigquery_datasets(self._project_id, token)
+        return vms + disks + ips + cloud_run + cloud_sql + storage + functions + load_balancers + bigquery
 
     async def get_metrics(self, request) -> list[dict]:
         """Return CPU / RAM time-series for compute resources."""
