@@ -1,6 +1,6 @@
 from urllib.parse import urlparse
 from workers import Response, Request
-from routes import health, docs, openapi_json
+from routes import health, docs, openapi_json, connect
 
 
 CORS_HEADERS = {
@@ -23,13 +23,16 @@ async def on_fetch(request: Request, env) -> Response:
     if method == "OPTIONS":
         return Response(None, status=204, headers=CORS_HEADERS)
 
-    if path == "/health":
-        return with_cors(await health())
-
     if path == "/docs":
         return await docs()
 
     if path == "/openapi.json":
         return with_cors(await openapi_json())
+
+    if path == "/api/v1/health":
+        return with_cors(await health())
+
+    if path == "/api/v1/connect" and method == "POST":
+        return with_cors(await connect(env, request))
 
     return with_cors(Response("Not Found", status=404))

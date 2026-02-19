@@ -1,0 +1,3 @@
+# Copy this to .dev.vars for local development
+# Generate your own key: python3 -c "import os,base64; print(base64.b64encode(os.urandom(32)).decode())"
+ENCRYPTION_KEY=your-base64-encoded-32-byte-key-here

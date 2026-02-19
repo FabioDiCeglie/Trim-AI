@@ -2,6 +2,12 @@ name = "trim-worker"
 main = "src/entry.py"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["python_workers"]
+account_id = "684a85371078b0ef211036daf0ae4d46"
+
+# ── Credential storage (AES-GCM encrypted blobs) ─────────────────────
+[[kv_namespaces]]
+binding = "CREDENTIALS"
+id = "520ade3b5e624876ad1d6d911a7863f6"
 
 [observability.logs]
 enabled = true
