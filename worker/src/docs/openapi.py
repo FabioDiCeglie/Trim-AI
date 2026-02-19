@@ -8,6 +8,7 @@ OPENAPI_SPEC = {
     "tags": [
         {"name": "Health", "description": "Service health"},
         {"name": "Connect", "description": "Provider credential management"},
+        {"name": "Providers", "description": "Cloud provider data endpoints"},
     ],
     "paths": {
         "/api/v1/health": {
@@ -87,8 +88,131 @@ OPENAPI_SPEC = {
                 },
             }
         },
+        "/api/v1/{provider}/projects": {
+            "get": {
+                "tags": ["Providers"],
+                "summary": "List projects",
+                "description": "List accessible projects/accounts for the connected provider.",
+                "operationId": "getProjects",
+                "parameters": [
+                    {
+                        "name": "provider",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string", "enum": ["gcp", "aws", "azure", "k8s"]},
+                    }
+                ],
+                "security": [{"BearerAuth": []}],
+                "responses": {
+                    "200": {
+                        "description": "List of projects",
+                        "content": {
+                            "application/json": {
+                                "schema": {"type": "array", "items": {"$ref": "#/components/schemas/Project"}},
+                                "example": [
+                                    {"id": "happycustomersai", "name": "HappyCustomersAI", "provider": "gcp"}
+                                ],
+                            }
+                        },
+                    },
+                    "401": {"description": "Missing or invalid Authorization header", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+                },
+            }
+        },
+        "/api/v1/{provider}/compute": {
+            "get": {
+                "tags": ["Providers"],
+                "summary": "List compute resources",
+                "description": "Return VMs, disks, and IPs — flagging idle, stopped, unattached, or oversized ones.",
+                "operationId": "getCompute",
+                "parameters": [
+                    {
+                        "name": "provider",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string", "enum": ["gcp", "aws", "azure", "k8s"]},
+                    }
+                ],
+                "security": [{"BearerAuth": []}],
+                "responses": {
+                    "200": {
+                        "description": "List of compute resources",
+                        "content": {
+                            "application/json": {
+                                "schema": {"type": "array", "items": {"$ref": "#/components/schemas/Resource"}},
+                            }
+                        },
+                    },
+                    "401": {"description": "Missing or invalid Authorization header", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+                },
+            }
+        },
+        "/api/v1/{provider}/metrics": {
+            "get": {
+                "tags": ["Providers"],
+                "summary": "Get resource metrics",
+                "description": "Return CPU / RAM time-series for compute resources.",
+                "operationId": "getMetrics",
+                "parameters": [
+                    {
+                        "name": "provider",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string", "enum": ["gcp", "aws", "azure", "k8s"]},
+                    }
+                ],
+                "security": [{"BearerAuth": []}],
+                "responses": {
+                    "200": {
+                        "description": "List of metrics",
+                        "content": {
+                            "application/json": {
+                                "schema": {"type": "array", "items": {"$ref": "#/components/schemas/Metric"}},
+                            }
+                        },
+                    },
+                    "401": {"description": "Missing or invalid Authorization header", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+                },
+            }
+        },
+        "/api/v1/{provider}/billing": {
+            "get": {
+                "tags": ["Providers"],
+                "summary": "Get billing data",
+                "description": "Return cost breakdown and spend anomalies.",
+                "operationId": "getBilling",
+                "parameters": [
+                    {
+                        "name": "provider",
+                        "in": "path",
+                        "required": True,
+                        "schema": {"type": "string", "enum": ["gcp", "aws", "azure", "k8s"]},
+                    }
+                ],
+                "security": [{"BearerAuth": []}],
+                "responses": {
+                    "200": {
+                        "description": "Billing report",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/CostReport"},
+                            }
+                        },
+                    },
+                    "401": {"description": "Missing or invalid Authorization header", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+                },
+            }
+        },
     },
     "components": {
+        "securitySchemes": {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "connectionId",
+                "description": "The connectionId returned from POST /api/v1/connect",
+            }
+        },
         "schemas": {
             "ConnectRequest": {
                 "type": "object",
@@ -120,6 +244,48 @@ OPENAPI_SPEC = {
                 "type": "object",
                 "properties": {
                     "error": {"type": "string"}
+                },
+            },
+            "Project": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "name": {"type": "string"},
+                    "provider": {"type": "string", "enum": ["gcp", "aws", "azure", "k8s"]},
+                },
+            },
+            "Resource": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "name": {"type": "string"},
+                    "provider": {"type": "string"},
+                    "region": {"type": "string"},
+                    "resource_type": {"type": "string", "enum": ["vm", "disk", "ip"]},
+                    "status": {"type": "string", "enum": ["healthy", "warning", "waste"]},
+                    "waste_reason": {"type": "string", "enum": ["idle", "stopped", "unattached", "oversized", "unused", "none"]},
+                    "monthly_cost_usd": {"type": "number"},
+                    "recommended_action": {"type": "string"},
+                },
+            },
+            "Metric": {
+                "type": "object",
+                "properties": {
+                    "timestamp": {"type": "string", "format": "date-time"},
+                    "cpu_percent": {"type": "number", "nullable": True},
+                    "ram_percent": {"type": "number", "nullable": True},
+                },
+            },
+            "CostReport": {
+                "type": "object",
+                "properties": {
+                    "provider": {"type": "string"},
+                    "project_id": {"type": "string"},
+                    "month": {"type": "string", "pattern": "^\\d{4}-\\d{2}$"},
+                    "total_cost_usd": {"type": "number"},
+                    "previous_month_cost_usd": {"type": "number", "nullable": True},
+                    "services": {"type": "array", "items": {"type": "object"}},
+                    "anomalies": {"type": "array", "items": {"type": "object"}},
                 },
             },
         }
