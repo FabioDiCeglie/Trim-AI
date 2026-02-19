@@ -1,4 +1,7 @@
-class GCPProvider:
+from providers.base import CloudProvider
+
+
+class GCPProvider(CloudProvider):
     """
     Google Cloud provider — implements the four core data-fetching methods.
 
