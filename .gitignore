@@ -1,0 +1,33 @@
+# ── Python / Workers ────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+.venv-workers/
+*.egg-info/
+dist/
+
+# ── Node / Wrangler ──────────────────────────────────
+node_modules/
+.wrangler/
+.dev.vars
+
+# ── Frontend (React / Vite) ──────────────────────────
+dashboard/dist/
+dashboard/.env
+dashboard/.env.local
+dashboard/.env.*.local
+
+# ── Cloudflare Pages ─────────────────────────────────
+.vercel/
+.cloudflare/
+
+# ── Environment & secrets ────────────────────────────
+.env
+.env.local
+.env.*.local
+*.secret
+
+# ── OS ───────────────────────────────────────────────
+.DS_Store
+Thumbs.db

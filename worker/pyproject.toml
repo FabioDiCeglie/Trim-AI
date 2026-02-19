@@ -1,0 +1,15 @@
+[project]
+name = "trim-worker"
+version = "0.1.0"
+description = "Cloud waste detection engine — Cloudflare Workers Python backend"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "workers-py>=0.0.7"
+]
+
+[tool.pyright]
+typeCheckingMode = "standard"
