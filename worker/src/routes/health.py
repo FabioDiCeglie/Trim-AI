@@ -2,4 +2,4 @@ from workers import Response
 
 
 async def health() -> Response:
-    return Response("", status=204)
+    return Response(None, status=204)

@@ -21,7 +21,7 @@ async def on_fetch(request: Request, env) -> Response:
     method = request.method
 
     if method == "OPTIONS":
-        return Response("", status=204, headers=CORS_HEADERS)
+        return Response(None, status=204, headers=CORS_HEADERS)
 
     if path == "/health":
         return with_cors(await health())
