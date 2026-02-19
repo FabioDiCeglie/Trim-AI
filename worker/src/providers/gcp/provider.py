@@ -3,7 +3,7 @@ import json
 from pyodide.ffi import to_js
 from providers.base import CloudProvider
 from providers.gcp.auth import GCPAuthService
-from providers.gcp.compute import list_instances
+from providers.gcp.compute import list_instances, list_disks, list_addresses
 
 
 class GCPProvider(CloudProvider):
@@ -37,7 +37,10 @@ class GCPProvider(CloudProvider):
     async def get_compute(self) -> list[dict]:
         """Return VMs, unattached disks, and unused static IPs — flagging wasteful ones."""
         token = await self._auth.get_access_token()
-        return await list_instances(self._project_id, token)
+        vms = await list_instances(self._project_id, token)
+        disks = await list_disks(self._project_id, token)
+        ips = await list_addresses(self._project_id, token)
+        return vms + disks + ips
 
     async def get_metrics(self, request) -> list[dict]:
         """Return CPU / RAM time-series for compute resources."""
