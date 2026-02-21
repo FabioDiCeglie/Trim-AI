@@ -69,6 +69,8 @@ async def handle_provider_request(env, request, provider_name: str, resource: st
             data = await provider.get_metrics(request)
         elif resource == "billing":
             data = await provider.get_billing()
+        elif resource == "overview":
+            data = await provider.get_overview(request)
         else:
             return error(f"Unknown resource: {resource}", 404)
 

@@ -92,3 +92,50 @@ class GCPProvider(CloudProvider):
         """Return billing account info; top_services / anomalies require BigQuery billing export."""
         token = await self._auth.get_access_token()
         return await get_project_billing_info(self._project_id, token)
+
+    async def get_overview(self, request) -> dict:
+        """
+        Single payload for the dashboard: compute + metrics (with utilization_status) + billing + summary.
+        """
+        compute = await self.get_compute()
+        metrics_list = await self.get_metrics(request)
+        billing = await self.get_billing()
+
+        over_provisioned = 0
+        under_provisioned = 0
+        metrics_enhanced = []
+        for item in metrics_list:
+            points = item.get("metrics") or []
+            cpus = [p["cpu_percent"] for p in points if p.get("cpu_percent") is not None]
+            rams = [p["ram_percent"] for p in points if p.get("ram_percent") is not None]
+            avg_cpu = sum(cpus) / len(cpus) if cpus else None
+            avg_ram = sum(rams) / len(rams) if rams else None
+
+            if avg_cpu is not None and avg_cpu < 5 and (avg_ram is None or avg_ram < 10):
+                utilization_status = "over_provisioned"
+                over_provisioned += 1
+            elif (avg_cpu is not None and avg_cpu > 80) or (avg_ram is not None and avg_ram > 90):
+                utilization_status = "under_provisioned"
+                under_provisioned += 1
+            else:
+                utilization_status = "ok"
+
+            metrics_enhanced.append({
+                **item,
+                "avg_cpu_percent": round(avg_cpu, 2) if avg_cpu is not None else None,
+                "avg_ram_percent": round(avg_ram, 2) if avg_ram is not None else None,
+                "utilization_status": utilization_status,
+            })
+
+        return {
+            "compute": compute,
+            "metrics": metrics_enhanced,
+            "billing": billing,
+            "summary": {
+                "total_resources": len(compute),
+                "with_metrics": len(metrics_enhanced),
+                "over_provisioned": over_provisioned,
+                "under_provisioned": under_provisioned,
+            },
+        }
+

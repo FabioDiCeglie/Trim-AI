@@ -182,6 +182,23 @@ OPENAPI_SPEC = {
                 },
             }
         },
+        "/api/v1/{provider}/overview": {
+            "get": {
+                "tags": ["Providers"],
+                "summary": "Dashboard overview",
+                "description": "Single payload: compute, metrics (with avg_cpu_percent, avg_ram_percent, utilization_status), billing, and summary counts. Optional query: days=30 (default) or 1–30 for metrics window.",
+                "operationId": "getOverview",
+                "parameters": [
+                    {"name": "provider", "in": "path", "required": True, "schema": {"type": "string", "enum": ["gcp", "aws", "azure", "k8s"]}},
+                    {"name": "days", "in": "query", "required": False, "schema": {"type": "integer", "minimum": 1, "maximum": 30, "default": 30}},
+                ],
+                "security": [{"BearerAuth": []}],
+                "responses": {
+                    "200": {"description": "Overview with compute, metrics, billing, summary"},
+                    "401": {"description": "Missing or invalid Authorization header", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+                },
+            }
+        },
         "/api/v1/{provider}/billing": {
             "get": {
                 "tags": ["Providers"],
