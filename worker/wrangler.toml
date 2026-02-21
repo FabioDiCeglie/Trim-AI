@@ -4,6 +4,10 @@ compatibility_date = "2024-12-01"
 compatibility_flags = ["python_workers"]
 account_id = "684a85371078b0ef211036daf0ae4d46"
 
+# ── Workers AI (chat) ───────────────────────────────────────────────
+[ai]
+binding = "AI"
+
 # ── Credential storage (AES-GCM encrypted blobs) ─────────────────────
 [[kv_namespaces]]
 binding = "CREDENTIALS"

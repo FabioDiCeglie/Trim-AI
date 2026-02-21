@@ -88,6 +88,40 @@ OPENAPI_SPEC = {
                 },
             }
         },
+        "/api/v1/chat": {
+            "post": {
+                "tags": ["Providers"],
+                "summary": "AI chat",
+                "description": "Ask Trim anything about your cloud waste and costs. Uses the connection from Authorization header (any provider). Fetches fresh overview data and returns an AI-generated reply.",
+                "operationId": "chat",
+                "security": [{"BearerAuth": []}],
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["message"],
+                                "properties": {"message": {"type": "string", "description": "User question"}},
+                            }
+                        }
+                    },
+                },
+                "responses": {
+                    "200": {
+                        "description": "AI reply",
+                        "content": {
+                            "application/json": {
+                                "schema": {"type": "object", "properties": {"reply": {"type": "string"}}},
+                            }
+                        },
+                    },
+                    "401": {"description": "Missing or invalid Authorization header", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+                    "502": {"description": "AI error", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+                    "503": {"description": "AI not configured", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+                },
+            }
+        },
         "/api/v1/{provider}/projects": {
             "get": {
                 "tags": ["Providers"],
