@@ -365,6 +365,46 @@ The Worker is built provider-agnostic from day one. Each cloud provider lives in
 
 ---
 
+## Future: AI Agent Features (Later)
+
+### 🧠 FEATURE 1 — “What’s Going Wrong” (Intelligent Health)
+
+**Goal:** Don’t just say “high CPU” — explain **problem + probable cause + impact**.
+
+**Examples:**
+- ⚠️ *“VM api-prod-1 had a CPU spike of +120% vs its normal baseline.”*
+- ⚠️ *“The database has 3× higher latency than the 7-day average.”*
+
+**Logic:**
+1. Take a **baseline** (last 7–14 days).
+2. Compare with **today** (or last 24h).
+3. Flag **only significant deviations** (e.g. >2× or >50% vs baseline).
+
+**Output format (readable report, not a wall of metrics):**
+- 🔴 **Crash risk** — immediate risk
+- 🟠 **Performance risk** — degradation / likely impact
+- 🟡 **Strange but not critical** — anomaly, worth a look
+
+---
+
+### 💸 FEATURE 2 — “What’s Costing Too Much” (Waste Detector)
+
+**Goal:** Highlight **cost + why it’s waste + what to do**.
+
+**Targets:**
+- Underutilized VMs (low CPU/RAM vs provisioned)
+- Unused disks (unattached / wrong storage class)
+- Services with strange cost growth (unexpected spike)
+- Resources on 24/7 but unused at night (always-on, no traffic)
+
+**Output format:**
+- 💰 *“This resource costs ~$98/mo and is used at 9%.”*
+- 👉 *Suggestion: downsize to e2-small*
+
+**Rule:** Never just say “costs a lot” — always: **costs a lot + why + what to do**.
+
+---
+
 ## Future: Auto-Remediation & AI Agents
 
 **Phase 2: One-Click Actions**

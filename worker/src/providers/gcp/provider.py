@@ -13,6 +13,7 @@ from providers.gcp.compute import (
     list_cloud_functions,
     list_load_balancers,
     list_bigquery_datasets,
+    list_gke_clusters,
 )
 
 
@@ -46,8 +47,9 @@ class GCPProvider(CloudProvider):
 
     async def get_compute(self) -> list[dict]:
         """
-        Return all GCP resources — VMs, disks, IPs, Cloud Run, Cloud SQL, Storage,
-        Cloud Functions, Load Balancers, and BigQuery — flagging wasteful ones.
+        Return all GCP resources — Compute Engine (VMs, disks, IPs), Cloud Run,
+        Cloud SQL, Storage, Cloud Functions, Load Balancers, BigQuery, GKE —
+        flagging wasteful ones.
         """
         token = await self._auth.get_access_token()
         vms = await list_instances(self._project_id, token)
@@ -59,7 +61,8 @@ class GCPProvider(CloudProvider):
         functions = await list_cloud_functions(self._project_id, token)
         load_balancers = await list_load_balancers(self._project_id, token)
         bigquery = await list_bigquery_datasets(self._project_id, token)
-        return vms + disks + ips + cloud_run + cloud_sql + storage + functions + load_balancers + bigquery
+        gke = await list_gke_clusters(self._project_id, token)
+        return vms + disks + ips + cloud_run + cloud_sql + storage + functions + load_balancers + bigquery + gke
 
     async def get_metrics(self, request) -> list[dict]:
         """Return CPU / RAM time-series for compute resources."""

@@ -7,6 +7,7 @@ SQL_BASE = "https://sqladmin.googleapis.com/v1"
 STORAGE_BASE = "https://storage.googleapis.com/storage/v1"
 FUNCTIONS_BASE = "https://cloudfunctions.googleapis.com/v1"
 BIGQUERY_BASE = "https://bigquery.googleapis.com/bigquery/v2"
+CONTAINER_BASE = "https://container.googleapis.com/v1"
 
 
 async def _fetch_gcp_api(url: str, token: str, api_name: str = "GCP API") -> dict:
@@ -350,3 +351,39 @@ async def list_bigquery_datasets(project_id: str, token: str) -> list[dict]:
         })
 
     return datasets
+
+
+async def list_gke_clusters(project_id: str, token: str) -> list[dict]:
+    """Fetch all GKE (Google Kubernetes Engine) clusters. Flags idle/oversized node pools."""
+    url = f"{CONTAINER_BASE}/projects/{project_id}/locations/-/clusters"
+    data = await _fetch_gcp_api(url, token, "GCP GKE API")
+    if not data:
+        return []
+
+    clusters = []
+    for cluster in data.get("clusters", []):
+        name = cluster.get("name", "")
+        location = cluster.get("location", "")
+        status = cluster.get("status", "")
+        node_pools = cluster.get("nodePools", [])
+        current_node_count = cluster.get("currentNodeCount", 0)
+        
+        # Stopped or error state = waste; empty cluster = potential waste
+        is_stopped = status not in ("RUNNING", "RECONCILING")
+        is_empty = current_node_count == 0 and not is_stopped
+        
+        clusters.append({
+            "id": cluster.get("id", ""),
+            "name": name,
+            "provider": "gcp",
+            "resource_type": "gke-cluster",
+            "region": location,
+            "status": "waste" if is_stopped else ("warning" if is_empty else "healthy"),
+            "waste_reason": "stopped" if is_stopped else ("empty" if is_empty else "none"),
+            "recommended_action": "Delete or start the cluster" if is_stopped else ("Consider deleting if unused" if is_empty else ""),
+            "node_pool_count": len(node_pools),
+            "current_node_count": current_node_count,
+            "cluster_status": status,
+        })
+
+    return clusters
