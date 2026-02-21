@@ -36,6 +36,23 @@ async def fetch_gcp_api(url: str, token: str, api_name: str = "GCP API") -> dict
     return data
 
 
+async def fetch_gcp_api_post(url: str, token: str, body: dict, api_name: str = "GCP API") -> dict:
+    """POST to a GCP API with JSON body (e.g. BigQuery jobs.query). Returns parsed JSON or raises."""
+    opts = {
+        "method": "POST",
+        "headers": {"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        "body": json.dumps(body),
+    }
+    resp = await js.fetch(url, to_js(opts, dict_converter=js.Object.fromEntries))
+    raw = await resp.text()
+    if not raw.strip():
+        return {}
+    data = json.loads(raw)
+    if "error" in data:
+        raise Exception(f"{api_name} error: {data['error'].get('message', data['error'])}")
+    return data
+
+
 def interval_endpoints(days: int = 30) -> tuple[str, str]:
     """Return (startTime, endTime) in RFC3339 for the last N days."""
     now = datetime.now(timezone.utc)

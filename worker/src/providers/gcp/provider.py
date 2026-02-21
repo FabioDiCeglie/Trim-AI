@@ -89,15 +89,20 @@ class GCPProvider(CloudProvider):
         gke = await list_gke_metrics(self._project_id, token, days=days)
         return vm + cloud_run + cloud_sql + gke
 
-    async def get_billing(self) -> dict:
-        """Return billing account info; top_services / anomalies require BigQuery billing export."""
+    async def get_billing(self, compute: list[dict] | None = None) -> dict:
+        """Return billing account info. Pass compute when building overview to get potential_savings from BigQuery export."""
         token = await self._auth.get_access_token()
-        return await get_project_billing_info(self._project_id, token)
+        return await get_project_billing_info(
+            self._project_id,
+            token,
+            credentials=self._creds,
+            compute=compute,
+        )
 
     async def get_overview(self, request) -> dict:
         """Single dashboard payload: compute, metrics (with utilization), billing, summary_cards, highlights."""
         compute = await self.get_compute()
         metrics_list = await self.get_metrics(request)
-        billing = await self.get_billing()
+        billing = await self.get_billing(compute=compute)
         return build_overview(compute, metrics_list, billing)
 
