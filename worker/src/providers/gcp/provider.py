@@ -15,7 +15,12 @@ from providers.gcp.compute import (
     list_bigquery_datasets,
     list_gke_clusters,
 )
-from providers.gcp.monitoring import list_instance_metrics
+from providers.gcp.monitoring import (
+    list_instance_metrics,
+    list_cloud_run_metrics,
+    list_cloud_sql_metrics,
+    list_gke_metrics,
+)
 
 
 class GCPProvider(CloudProvider):
@@ -66,7 +71,7 @@ class GCPProvider(CloudProvider):
         return vms + disks + ips + cloud_run + cloud_sql + storage + functions + load_balancers + bigquery + gke
 
     async def get_metrics(self, request) -> list[dict]:
-        """Return CPU / RAM time-series for Compute Engine VMs (last 30 days by default)."""
+        """Return CPU / RAM time-series for GCE VMs, Cloud Run, Cloud SQL, and GKE (last 30 days by default)."""
         token = await self._auth.get_access_token()
         days = 30
         try:
@@ -76,7 +81,11 @@ class GCPProvider(CloudProvider):
                 days = max(1, min(30, int(query["days"][0])))
         except (ValueError, IndexError):
             pass
-        return await list_instance_metrics(self._project_id, token, days=days)
+        vm = await list_instance_metrics(self._project_id, token, days=days)
+        cloud_run = await list_cloud_run_metrics(self._project_id, token, days=days)
+        cloud_sql = await list_cloud_sql_metrics(self._project_id, token, days=days)
+        gke = await list_gke_metrics(self._project_id, token, days=days)
+        return vm + cloud_run + cloud_sql + gke
 
     async def get_billing(self) -> dict:
         """Return cost breakdown and spend anomalies for the project."""

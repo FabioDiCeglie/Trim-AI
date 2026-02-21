@@ -54,15 +54,22 @@ def value_from_point(point: dict) -> float:
     return 0.0
 
 
-def build_ts_url(project_name: str, metric_filter: str, start_time: str, end_time: str) -> str:
-    """Build Cloud Monitoring timeSeries list URL with filter and interval."""
+def build_ts_url(
+    project_name: str,
+    metric_filter: str,
+    start_time: str,
+    end_time: str,
+    *,
+    per_series_aligner: str = "ALIGN_MEAN",
+) -> str:
+    """Build Cloud Monitoring timeSeries list URL. Use ALIGN_RATE for DELTA/DISTRIBUTION metrics (e.g. Cloud Run)."""
     return (
         f"{MONITORING_BASE}/{project_name}/timeSeries?"
         f"filter={quote(metric_filter)}&"
         f"interval.startTime={quote(start_time)}&"
         f"interval.endTime={quote(end_time)}&"
         f"aggregation.alignmentPeriod=3600s&"
-        f"aggregation.perSeriesAligner=ALIGN_MEAN"
+        f"aggregation.perSeriesAligner={per_series_aligner}"
     )
 
 

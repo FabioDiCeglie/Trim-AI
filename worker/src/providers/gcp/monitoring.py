@@ -90,8 +90,11 @@ async def list_cloud_run_metrics(project_id: str, token: str, days: int = 30) ->
     start_time, end_time = interval_endpoints(days)
     project_name = f"projects/{project_id}"
 
+    # Cloud Run metrics are DELTA DISTRIBUTION; ALIGN_RATE is valid (ALIGN_MEAN is not).
     cpu_data = await fetch_gcp_api(
-        build_ts_url(project_name, RUN_CPU, start_time, end_time), token, "GCP Monitoring API"
+        build_ts_url(project_name, RUN_CPU, start_time, end_time, per_series_aligner="ALIGN_SUM"),
+        token,
+        "GCP Monitoring API",
     )
     if not cpu_data:
         return []
@@ -115,7 +118,9 @@ async def list_cloud_run_metrics(project_id: str, token: str, days: int = 30) ->
         by_revision[key] = points
 
     memory_data = await fetch_gcp_api(
-        build_ts_url(project_name, RUN_MEMORY, start_time, end_time), token, "GCP Monitoring API"
+        build_ts_url(project_name, RUN_MEMORY, start_time, end_time, per_series_aligner="ALIGN_SUM"),
+        token,
+        "GCP Monitoring API",
     )
     if memory_data:
         for ts in memory_data.get("timeSeries", []):
