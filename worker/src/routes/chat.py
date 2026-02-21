@@ -6,6 +6,8 @@ provider to use. Fetches fresh overview data, builds a condensed context,
 and calls Workers AI. The user can ask anything about their cloud waste and costs.
 """
 import json
+import js
+from pyodide.ffi import to_js
 from workers import Response
 from services import CredentialService
 from providers import get_provider
@@ -55,13 +57,18 @@ def _condense_overview(overview: dict) -> str:
     return "\n".join(lines)
 
 
-def _build_prompt(context: str, user_message: str) -> str:
-    system = (
-        "You are Trim, a concise cloud waste and cost assistant. "
-        "Answer only using the data below. Be short and actionable. "
-        "If the user asks what to fix first, prioritize by impact (savings or risk)."
+def _build_messages(context: str, user_message: str) -> list[dict]:
+    system_content = (
+        "You are Trim, a cloud waste and cost assistant. "
+        "Use only the data below. Give clear, explanatory answers: say why something matters and what the impact is. "
+        "When you recommend an action, always include a step-by-step list (e.g. 'Step 1: ... Step 2: ...') so the user can follow it exactly. "
+        "Use 2–4 short paragraphs when useful, then end with clear steps. "
+        "When prioritizing (e.g. what to fix first), explain why you ordered items that way (savings, risk, or effort)."
     )
-    return f"{system}\n\nCurrent cloud state:\n{context}\n\nUser question: {user_message}\n\nTrim:"
+    return [
+        {"role": "system", "content": f"{system_content}\n\nCurrent cloud state:\n{context}"},
+        {"role": "user", "content": user_message},
+    ]
 
 
 async def chat(env, request) -> Response:
@@ -89,14 +96,15 @@ async def chat(env, request) -> Response:
         return error(f"Failed to fetch overview: {e}", 500)
 
     context = _condense_overview(overview)
-    prompt = _build_prompt(context, message)
+    messages = _build_messages(context, message)
 
     ai = getattr(env, "AI", None)
     if ai is None:
         return error("AI not configured", 503)
 
     try:
-        result = await ai.run("@cf/meta/llama-3.1-8b-instruct", {"prompt": prompt})
+        options = to_js({"messages": messages}, dict_converter=js.Object.fromEntries)
+        result = await ai.run("@cf/meta/llama-3.1-8b-instruct-fp8", options)
     except Exception as e:
         return error(f"AI error: {e}", 502)
 
