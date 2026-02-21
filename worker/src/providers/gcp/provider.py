@@ -15,6 +15,7 @@ from providers.gcp.compute import (
     list_bigquery_datasets,
     list_gke_clusters,
 )
+from providers.gcp.monitoring import list_instance_metrics
 
 
 class GCPProvider(CloudProvider):
@@ -65,8 +66,17 @@ class GCPProvider(CloudProvider):
         return vms + disks + ips + cloud_run + cloud_sql + storage + functions + load_balancers + bigquery + gke
 
     async def get_metrics(self, request) -> list[dict]:
-        """Return CPU / RAM time-series for compute resources."""
-        return []
+        """Return CPU / RAM time-series for Compute Engine VMs (last 30 days by default)."""
+        token = await self._auth.get_access_token()
+        days = 30
+        try:
+            from urllib.parse import parse_qs, urlparse
+            query = parse_qs(urlparse(request.url).query)
+            if "days" in query and query["days"]:
+                days = max(1, min(30, int(query["days"][0])))
+        except (ValueError, IndexError):
+            pass
+        return await list_instance_metrics(self._project_id, token, days=days)
 
     async def get_billing(self) -> dict:
         """Return cost breakdown and spend anomalies for the project."""

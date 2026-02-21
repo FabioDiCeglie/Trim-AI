@@ -151,7 +151,7 @@ OPENAPI_SPEC = {
             "get": {
                 "tags": ["Providers"],
                 "summary": "Get resource metrics",
-                "description": "Return CPU / RAM time-series for compute resources.",
+                "description": "Return CPU / RAM time-series for compute resources (e.g. GCE VMs). Optional query: days=30 (default) or 1–30.",
                 "operationId": "getMetrics",
                 "parameters": [
                     {
@@ -159,7 +159,14 @@ OPENAPI_SPEC = {
                         "in": "path",
                         "required": True,
                         "schema": {"type": "string", "enum": ["gcp", "aws", "azure", "k8s"]},
-                    }
+                    },
+                    {
+                        "name": "days",
+                        "in": "query",
+                        "required": False,
+                        "schema": {"type": "integer", "minimum": 1, "maximum": 30, "default": 30},
+                        "description": "Number of days of metrics to return (1–30).",
+                    },
                 ],
                 "security": [{"BearerAuth": []}],
                 "responses": {

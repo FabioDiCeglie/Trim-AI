@@ -27,6 +27,7 @@ dashboard/.env.*.local
 .env.local
 .env.*.local
 *.secret
+worker/gcp-credentials.json
 
 # ── OS ───────────────────────────────────────────────
 .DS_Store
