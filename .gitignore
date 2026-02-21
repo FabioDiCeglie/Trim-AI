@@ -13,10 +13,10 @@ node_modules/
 .dev.vars
 
 # ── Frontend (React / Vite) ──────────────────────────
-dashboard/dist/
-dashboard/.env
-dashboard/.env.local
-dashboard/.env.*.local
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
 
 # ── Cloudflare Pages ─────────────────────────────────
 .vercel/

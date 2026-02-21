@@ -160,7 +160,7 @@ trim/
 │   │           └── index.ts             # K8sProvider implements CloudProvider
 │   ├── wrangler.toml
 │   └── package.json
-└── dashboard/                           # React App
+└── frontend/                            # React App
     ├── src/
     │   ├── App.tsx
     │   ├── types.ts                     # Mirrors worker normalized types on the frontend
@@ -192,7 +192,7 @@ trim/
   - [ ] Build `registry.ts` to map provider name → adapter instance
   - [ ] Provider-agnostic router: `/api/:provider/compute`, `/api/:provider/metrics`, `/api/:provider/billing`
 - [ ] **Phase 1 — GCP**
-  - [ ] Scaffold monorepo (`worker/` + `dashboard/`)
+  - [ ] Scaffold monorepo (`worker/` + `frontend/`)
   - [ ] `GCPProvider implements CloudProvider`
   - [ ] GCP Service Account JWT signing via Web Crypto API
   - [ ] `POST /api/connect` — save credentials to KV
@@ -235,7 +235,7 @@ wrangler kv:namespace create CREDENTIALS
 wrangler dev
 
 # Dashboard
-cd dashboard
+cd frontend
 npm install
 npm run dev
 ```
@@ -293,7 +293,7 @@ Each red row shows a **waste reason badge** (e.g. "Idle 7d", "Unattached", "Unus
 
 ## Onboarding Flow
 
-The connection flow is provider-agnostic and built into the dashboard:
+The connection flow is provider-agnostic and built into the frontend:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
