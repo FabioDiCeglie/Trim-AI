@@ -1,6 +1,4 @@
-import js
-import json
-from pyodide.ffi import to_js
+from providers.gcp.helpers import fetch_gcp_api, parse_resource_url
 
 COMPUTE_BASE = "https://compute.googleapis.com/compute/v1"
 SQL_BASE = "https://sqladmin.googleapis.com/v1"
@@ -10,33 +8,10 @@ BIGQUERY_BASE = "https://bigquery.googleapis.com/bigquery/v2"
 CONTAINER_BASE = "https://container.googleapis.com/v1"
 
 
-async def _fetch_gcp_api(url: str, token: str, api_name: str = "GCP API") -> dict:
-    """
-    Generic helper to fetch from any GCP API with consistent error handling.
-    Returns parsed JSON data, or empty dict if API is not enabled.
-    """
-    resp = await js.fetch(
-        url,
-        to_js({"headers": {"Authorization": f"Bearer {token}"}}, dict_converter=js.Object.fromEntries),
-    )
-    raw = await resp.text()
-    if not raw.strip():
-        return {}
-    
-    data = json.loads(raw)
-    if "error" in data:
-        error_msg = str(data.get("error", {})).lower()
-        if "not enabled" in error_msg or "not been used" in error_msg:
-            return {}  # API not enabled, skip gracefully
-        raise Exception(f"{api_name} error: {data['error'].get('message', data['error'])}")
-    
-    return data
-
-
 async def list_instances(project_id: str, token: str) -> list[dict]:
     """Fetch all VM instances across all zones. Flags stopped VMs as waste."""
     url = f"{COMPUTE_BASE}/projects/{project_id}/aggregated/instances"
-    data = await _fetch_gcp_api(url, token, "GCP Compute API")
+    data = await fetch_gcp_api(url, token, "GCP Compute API")
     if not data:
         return []
 
@@ -51,31 +26,21 @@ async def list_instances(project_id: str, token: str) -> list[dict]:
                 "name": vm.get("name", ""),
                 "provider": "gcp",
                 "resource_type": "vm",
-                "region": _parse_zone(vm.get("zone", "")),
+                "region": parse_resource_url(vm.get("zone", "")),
                 "status": "waste" if is_stopped else "healthy",
                 "waste_reason": "stopped" if is_stopped else "none",
                 "recommended_action": "Delete or start the VM" if is_stopped else "",
-                "machine_type": _parse_machine_type(vm.get("machineType", "")),
+                "machine_type": parse_resource_url(vm.get("machineType", "")),
                 "vm_status": status,
             })
 
     return instances
 
 
-def _parse_zone(zone_url: str) -> str:
-    """Extract zone name from a full GCP zone URL."""
-    return zone_url.split("/")[-1] if zone_url else ""
-
-
-def _parse_machine_type(mt_url: str) -> str:
-    """Extract machine type name from a full GCP machineType URL."""
-    return mt_url.split("/")[-1] if mt_url else ""
-
-
 async def list_disks(project_id: str, token: str) -> list[dict]:
     """Fetch all persistent disks. Flags unattached disks as waste."""
     url = f"{COMPUTE_BASE}/projects/{project_id}/aggregated/disks"
-    data = await _fetch_gcp_api(url, token, "GCP Compute API")
+    data = await fetch_gcp_api(url, token, "GCP Compute API")
     if not data:
         return []
 
@@ -91,7 +56,7 @@ async def list_disks(project_id: str, token: str) -> list[dict]:
                 "name": disk.get("name", ""),
                 "provider": "gcp",
                 "resource_type": "disk",
-                "region": _parse_zone(disk.get("zone", "")),
+                "region": parse_resource_url(disk.get("zone", "")),
                 "status": "waste" if is_unattached else "healthy",
                 "waste_reason": "unattached" if is_unattached else "none",
                 "recommended_action": "Delete this disk to stop charges" if is_unattached else "",
@@ -105,7 +70,7 @@ async def list_disks(project_id: str, token: str) -> list[dict]:
 async def list_addresses(project_id: str, token: str) -> list[dict]:
     """Fetch all static external IP addresses. Flags unused IPs as waste."""
     url = f"{COMPUTE_BASE}/projects/{project_id}/aggregated/addresses"
-    data = await _fetch_gcp_api(url, token, "GCP Compute API")
+    data = await fetch_gcp_api(url, token, "GCP Compute API")
     if not data:
         return []
 
@@ -121,7 +86,7 @@ async def list_addresses(project_id: str, token: str) -> list[dict]:
                 "name": addr.get("name", ""),
                 "provider": "gcp",
                 "resource_type": "ip",
-                "region": _parse_region(addr.get("region", "")),
+                "region": parse_resource_url(addr.get("region", "")),
                 "status": "waste" if is_unused else "healthy",
                 "waste_reason": "unused" if is_unused else "none",
                 "recommended_action": "Release this IP to stop charges" if is_unused else "",
@@ -132,15 +97,10 @@ async def list_addresses(project_id: str, token: str) -> list[dict]:
     return addresses
 
 
-def _parse_region(region_url: str) -> str:
-    """Extract region name from a full GCP region URL."""
-    return region_url.split("/")[-1] if region_url else ""
-
-
 async def list_cloud_run_services(project_id: str, token: str) -> list[dict]:
     """Fetch all Cloud Run services. Flags services with min_instances > 0 as waste."""
     url = f"https://run.googleapis.com/v1/projects/{project_id}/locations/-/services"
-    data = await _fetch_gcp_api(url, token, "GCP Cloud Run API")
+    data = await fetch_gcp_api(url, token, "GCP Cloud Run API")
     if not data:
         return []
 
@@ -195,7 +155,7 @@ async def list_cloud_run_services(project_id: str, token: str) -> list[dict]:
 async def list_cloud_sql_instances(project_id: str, token: str) -> list[dict]:
     """Fetch all Cloud SQL instances. Flags stopped instances as waste."""
     url = f"{SQL_BASE}/projects/{project_id}/instances"
-    data = await _fetch_gcp_api(url, token, "GCP Cloud SQL API")
+    data = await fetch_gcp_api(url, token, "GCP Cloud SQL API")
     if not data:
         return []
 
@@ -233,7 +193,7 @@ async def list_cloud_sql_instances(project_id: str, token: str) -> list[dict]:
 async def list_storage_buckets(project_id: str, token: str) -> list[dict]:
     """Fetch all Cloud Storage buckets. Flags Standard class buckets as potential waste."""
     url = f"{STORAGE_BASE}/b?project={project_id}"
-    data = await _fetch_gcp_api(url, token, "GCP Storage API")
+    data = await fetch_gcp_api(url, token, "GCP Storage API")
     if not data:
         return []
 
@@ -267,7 +227,7 @@ async def list_storage_buckets(project_id: str, token: str) -> list[dict]:
 async def list_cloud_functions(project_id: str, token: str) -> list[dict]:
     """Fetch all Cloud Functions (Gen 1). Would need metrics to detect unused ones."""
     url = f"{FUNCTIONS_BASE}/projects/{project_id}/locations/-/functions"
-    data = await _fetch_gcp_api(url, token, "GCP Cloud Functions API")
+    data = await fetch_gcp_api(url, token, "GCP Cloud Functions API")
     if not data:
         return []
 
@@ -299,7 +259,7 @@ async def list_cloud_functions(project_id: str, token: str) -> list[dict]:
 async def list_load_balancers(project_id: str, token: str) -> list[dict]:
     """Fetch all Load Balancers. Flags unused ones (no backends) as waste."""
     url = f"{COMPUTE_BASE}/projects/{project_id}/global/backendServices"
-    data = await _fetch_gcp_api(url, token, "GCP Compute API")
+    data = await fetch_gcp_api(url, token, "GCP Compute API")
     if not data:
         return []
 
@@ -327,7 +287,7 @@ async def list_load_balancers(project_id: str, token: str) -> list[dict]:
 async def list_bigquery_datasets(project_id: str, token: str) -> list[dict]:
     """Fetch all BigQuery datasets. Would need query metrics to detect unused ones."""
     url = f"{BIGQUERY_BASE}/projects/{project_id}/datasets"
-    data = await _fetch_gcp_api(url, token, "GCP BigQuery API")
+    data = await fetch_gcp_api(url, token, "GCP BigQuery API")
     if not data:
         return []
 
@@ -356,7 +316,7 @@ async def list_bigquery_datasets(project_id: str, token: str) -> list[dict]:
 async def list_gke_clusters(project_id: str, token: str) -> list[dict]:
     """Fetch all GKE (Google Kubernetes Engine) clusters. Flags idle/oversized node pools."""
     url = f"{CONTAINER_BASE}/projects/{project_id}/locations/-/clusters"
-    data = await _fetch_gcp_api(url, token, "GCP GKE API")
+    data = await fetch_gcp_api(url, token, "GCP GKE API")
     if not data:
         return []
 
