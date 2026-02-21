@@ -186,7 +186,7 @@ OPENAPI_SPEC = {
             "get": {
                 "tags": ["Providers"],
                 "summary": "Dashboard overview",
-                "description": "Single payload: compute, metrics (with avg_cpu_percent, avg_ram_percent, utilization_status), billing, and summary counts. Optional query: days=30 (default) or 1–30 for metrics window.",
+                "description": "Dashboard payload: summary, summary_cards (for top row), highlights (waste + utilization alerts), compute, metrics (avg/peak CPU/RAM, utilization_status), billing. Optional query: days=30 (default) or 1–30.",
                 "operationId": "getOverview",
                 "parameters": [
                     {"name": "provider", "in": "path", "required": True, "schema": {"type": "string", "enum": ["gcp", "aws", "azure", "k8s"]}},
