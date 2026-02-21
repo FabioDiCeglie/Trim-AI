@@ -186,7 +186,7 @@ OPENAPI_SPEC = {
             "get": {
                 "tags": ["Providers"],
                 "summary": "Get billing data",
-                "description": "Return cost breakdown and spend anomalies.",
+                "description": "Return project billing account info (enabled, account id, display name, currency). top_services and anomalies require BigQuery billing export.",
                 "operationId": "getBilling",
                 "parameters": [
                     {
@@ -286,12 +286,12 @@ OPENAPI_SPEC = {
             "CostReport": {
                 "type": "object",
                 "properties": {
-                    "provider": {"type": "string"},
-                    "project_id": {"type": "string"},
-                    "month": {"type": "string", "pattern": "^\\d{4}-\\d{2}$"},
-                    "total_cost_usd": {"type": "number"},
-                    "previous_month_cost_usd": {"type": "number", "nullable": True},
-                    "services": {"type": "array", "items": {"type": "object"}},
+                    "billing_enabled": {"type": "boolean"},
+                    "billing_account_id": {"type": "string", "nullable": True},
+                    "billing_account_display_name": {"type": "string", "nullable": True},
+                    "currency_code": {"type": "string"},
+                    "top_services": {"type": "array", "items": {"type": "object"}, "description": "Requires BigQuery billing export"},
+                    "month_over_month_delta": {"type": "number", "nullable": True},
                     "anomalies": {"type": "array", "items": {"type": "object"}},
                 },
             },

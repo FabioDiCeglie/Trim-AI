@@ -21,6 +21,7 @@ from providers.gcp.monitoring import (
     list_cloud_sql_metrics,
     list_gke_metrics,
 )
+from providers.gcp.billing import get_project_billing_info
 
 
 class GCPProvider(CloudProvider):
@@ -88,5 +89,6 @@ class GCPProvider(CloudProvider):
         return vm + cloud_run + cloud_sql + gke
 
     async def get_billing(self) -> dict:
-        """Return cost breakdown and spend anomalies for the project."""
-        return {}
+        """Return billing account info; top_services / anomalies require BigQuery billing export."""
+        token = await self._auth.get_access_token()
+        return await get_project_billing_info(self._project_id, token)
