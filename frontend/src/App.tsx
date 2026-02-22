@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useConnection } from "./hooks/useConnection";
+import { useConnection } from "./contexts/ConnectionContext";
 import { Layout } from "./components/Layout";
 import { Chat } from "./components/Chat";
 import { Onboarding } from "./pages/Onboarding";
