@@ -53,27 +53,29 @@ class GCPProvider(CloudProvider):
             for p in projects
         ]
 
-    async def get_compute(self) -> list[dict]:
+    async def get_compute(self, project_id: str | None = None) -> list[dict]:
         """
         Return all GCP resources — Compute Engine (VMs, disks, IPs), Cloud Run,
         Cloud SQL, Storage, Cloud Functions, Load Balancers, BigQuery, GKE —
-        flagging wasteful ones.
+        flagging wasteful ones. Use project_id to scope to a specific project.
         """
+        pid = project_id or self._project_id
         token = await self._auth.get_access_token()
-        vms = await list_instances(self._project_id, token)
-        disks = await list_disks(self._project_id, token)
-        ips = await list_addresses(self._project_id, token)
-        cloud_run = await list_cloud_run_services(self._project_id, token)
-        cloud_sql = await list_cloud_sql_instances(self._project_id, token)
-        storage = await list_storage_buckets(self._project_id, token)
-        functions = await list_cloud_functions(self._project_id, token)
-        load_balancers = await list_load_balancers(self._project_id, token)
-        bigquery = await list_bigquery_datasets(self._project_id, token)
-        gke = await list_gke_clusters(self._project_id, token)
+        vms = await list_instances(pid, token)
+        disks = await list_disks(pid, token)
+        ips = await list_addresses(pid, token)
+        cloud_run = await list_cloud_run_services(pid, token)
+        cloud_sql = await list_cloud_sql_instances(pid, token)
+        storage = await list_storage_buckets(pid, token)
+        functions = await list_cloud_functions(pid, token)
+        load_balancers = await list_load_balancers(pid, token)
+        bigquery = await list_bigquery_datasets(pid, token)
+        gke = await list_gke_clusters(pid, token)
         return vms + disks + ips + cloud_run + cloud_sql + storage + functions + load_balancers + bigquery + gke
 
-    async def get_metrics(self, request) -> list[dict]:
+    async def get_metrics(self, request, project_id: str | None = None) -> list[dict]:
         """Return CPU / RAM time-series for GCE VMs, Cloud Run, Cloud SQL, and GKE (last 30 days by default)."""
+        pid = project_id or self._project_id
         token = await self._auth.get_access_token()
         days = 30
         try:
@@ -83,26 +85,28 @@ class GCPProvider(CloudProvider):
                 days = max(1, min(30, int(query["days"][0])))
         except (ValueError, IndexError):
             pass
-        vm = await list_instance_metrics(self._project_id, token, days=days)
-        cloud_run = await list_cloud_run_metrics(self._project_id, token, days=days)
-        cloud_sql = await list_cloud_sql_metrics(self._project_id, token, days=days)
-        gke = await list_gke_metrics(self._project_id, token, days=days)
+        vm = await list_instance_metrics(pid, token, days=days)
+        cloud_run = await list_cloud_run_metrics(pid, token, days=days)
+        cloud_sql = await list_cloud_sql_metrics(pid, token, days=days)
+        gke = await list_gke_metrics(pid, token, days=days)
         return vm + cloud_run + cloud_sql + gke
 
-    async def get_billing(self, compute: list[dict] | None = None) -> dict:
+    async def get_billing(self, compute: list[dict] | None = None, project_id: str | None = None) -> dict:
         """Return billing account info. Pass compute when building overview to get potential_savings from BigQuery export."""
+        pid = project_id or self._project_id
         token = await self._auth.get_access_token()
         return await get_project_billing_info(
-            self._project_id,
+            pid,
             token,
             credentials=self._creds,
             compute=compute,
         )
 
-    async def get_overview(self, request) -> dict:
-        """Single dashboard payload: compute, metrics (with utilization), billing, summary_cards, highlights."""
-        compute = await self.get_compute()
-        metrics_list = await self.get_metrics(request)
-        billing = await self.get_billing(compute=compute)
+    async def get_overview(self, request, project_id: str | None = None) -> dict:
+        """Single dashboard payload: compute, metrics (with utilization), billing, summary_cards, highlights. Optional project_id scopes to that project."""
+        pid = project_id or self._project_id
+        compute = await self.get_compute(project_id=pid)
+        metrics_list = await self.get_metrics(request, project_id=pid)
+        billing = await self.get_billing(compute=compute, project_id=pid)
         return build_overview(compute, metrics_list, billing)
 

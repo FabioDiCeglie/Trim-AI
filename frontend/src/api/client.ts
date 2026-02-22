@@ -51,10 +51,17 @@ export const api = {
       body: { provider, credentials },
     }),
 
-  overview: () => {
+  projects: () => {
     const provider = getProvider();
     if (!provider) throw new Error("No provider");
-    return request<import("../types").Overview>(`/api/v1/${provider}/overview`);
+    return request<import("../types").Project[]>(`/api/v1/${provider}/projects`);
+  },
+
+  overview: (projectId?: string | null) => {
+    const provider = getProvider();
+    if (!provider) throw new Error("No provider");
+    const url = projectId ? `/api/v1/${provider}/overview?project=${encodeURIComponent(projectId)}` : `/api/v1/${provider}/overview`;
+    return request<import("../types").Overview>(url);
   },
 
   chat: (message: string) =>

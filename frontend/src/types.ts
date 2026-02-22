@@ -5,6 +5,12 @@ export interface ConnectResponse {
   provider: Provider;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  provider: string;
+}
+
 export interface Overview {
   summary: {
     total_resources: number;

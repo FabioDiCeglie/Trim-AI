@@ -6,3 +6,13 @@ body {
   background-color: #121212;
   @apply text-white antialiased;
 }
+
+/* Dark theme for project dropdown (native select + options) */
+.project-select {
+  background-color: #181818 !important;
+  color: #e4e4e7;
+}
+.project-select option {
+  background-color: #181818;
+  color: #e4e4e7;
+}

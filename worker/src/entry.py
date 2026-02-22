@@ -1,4 +1,4 @@
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 from workers import Response, Request
 from routes import health, docs, openapi_json, connect, chat
 from services import CredentialService
@@ -73,7 +73,9 @@ async def handle_provider_request(env, request, provider_name: str, resource: st
         elif resource == "billing":
             data = await provider.get_billing()
         elif resource == "overview":
-            data = await provider.get_overview(request)
+            query = parse_qs(urlparse(request.url).query)
+            project_id = query.get("project", [None])[0] if query.get("project") else None
+            data = await provider.get_overview(request, project_id=project_id)
         else:
             return error(f"Unknown resource: {resource}", 404)
 

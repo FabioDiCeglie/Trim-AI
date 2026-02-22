@@ -31,6 +31,6 @@ class CloudProvider(ABC):
         ...
 
     @abstractmethod
-    async def get_overview(self, request) -> dict:
-        """Return single dashboard payload: compute, metrics (with utilization), billing, summary."""
+    async def get_overview(self, request, project_id: str | None = None) -> dict:
+        """Return single dashboard payload: compute, metrics (with utilization), billing, summary. project_id optionally scopes to that project (e.g. GCP)."""
         ...

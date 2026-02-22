@@ -1,0 +1,23 @@
+{
+  "summary": {
+    "total_resources": 8,
+    "waste_count": 0,
+    "with_metrics": 6,
+    "over_provisioned": 0,
+    "under_provisioned": 0
+  },
+  "summary_cards": [],
+  "highlights": [],
+  "compute": [],
+  "metrics": [],
+  "billing": {
+    "billing_account_display_name": "My Billing Account",
+    "currency_code": "USD",
+    "potential_savings": { "value": 24, "currency": "USD" },
+    "top_services": [
+      { "service": "Compute Engine", "cost": 156.2 },
+      { "service": "Cloud Storage", "cost": 32.1 },
+      { "service": "Cloud Run", "cost": 18.5 }
+    ]
+  }
+}

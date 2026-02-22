@@ -41,7 +41,7 @@ export function Chat() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-trim-green text-white shadow-lg hover:bg-trim-green-hover flex items-center justify-center transition-colors z-50"
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-trim-green text-white shadow-lg hover:bg-trim-green-hover flex items-center justify-center transition-colors z-[100]"
         aria-label="Open chat"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,7 +50,10 @@ export function Chat() {
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-6 w-[380px] max-w-[calc(100vw-3rem)] bg-trim-elevated rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[70vh] z-50">
+        <div
+          className="fixed bottom-24 right-6 w-[380px] max-w-[calc(100vw-3rem)] rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[70vh] z-[100]"
+          style={{ backgroundColor: "#181818" }}
+        >
           <div className="p-4 border-b border-white/10 flex items-center justify-between">
             <span className="font-semibold text-white">Ask Trim</span>
             <button
