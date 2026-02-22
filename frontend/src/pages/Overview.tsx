@@ -2,15 +2,6 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { Overview as OverviewType, Project } from "../types";
-import mockOverview from "../fixtures/overview.json";
-import mockOverviewOther from "../fixtures/overview-other-project.json";
-
-const useMockInDev = import.meta.env.DEV && !window.location.search.includes("live=1");
-
-const MOCK_PROJECTS: Project[] = [
-  { id: "my-project", name: "My project", provider: "gcp" },
-  { id: "other-project", name: "Other project", provider: "gcp" },
-];
 
 export function Overview() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -18,22 +9,11 @@ export function Overview() {
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ["projects"],
     queryFn: () => api.projects(),
-    enabled: !useMockInDev,
   });
 
-  const projectList = useMockInDev ? MOCK_PROJECTS : projects;
-
   const { data, isLoading, error } = useQuery<OverviewType>({
-    queryKey: ["overview", useMockInDev, selectedProjectId],
-    queryFn: () => {
-      if (useMockInDev) {
-        if (selectedProjectId === "other-project") {
-          return Promise.resolve(mockOverviewOther as OverviewType);
-        }
-        return Promise.resolve(mockOverview as OverviewType);
-      }
-      return api.overview(selectedProjectId ?? undefined);
-    },
+    queryKey: ["overview", selectedProjectId],
+    queryFn: () => api.overview(selectedProjectId ?? undefined),
   });
 
   if (isLoading) {
@@ -73,7 +53,7 @@ export function Overview() {
     <div className="space-y-8 max-w-6xl">
       <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Provider Overview</h1>
-        {projectList.length > 0 && (
+        {projects.length > 0 && (
           <label className="flex items-center gap-2">
             <span className="text-trim-muted text-sm whitespace-nowrap">Project</span>
             <select
@@ -82,7 +62,7 @@ export function Overview() {
               className="project-select rounded-lg border border-white/10 text-sm py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-trim-green min-w-[12rem]"
             >
               <option value="">All projects</option>
-              {projectList.map((p) => (
+              {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
