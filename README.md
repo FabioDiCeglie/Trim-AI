@@ -1,4 +1,4 @@
-# Trim
+# Trim 👀
 
 **Find cloud waste before it finds your budget.**
 
