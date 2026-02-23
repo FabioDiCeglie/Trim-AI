@@ -51,7 +51,7 @@ export function Chat() {
 
       {open && (
         <div
-          className="fixed bottom-24 right-6 w-[380px] max-w-[calc(100vw-3rem)] rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[70vh] z-[100]"
+          className="fixed bottom-24 right-6 w-[500px] max-w-[calc(100vw-3rem)] rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[70vh] z-[100]"
           style={{ backgroundColor: "#181818" }}
         >
           <div className="p-4 border-b border-white/10 flex items-center justify-between">
