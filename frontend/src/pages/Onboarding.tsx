@@ -3,10 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useConnection } from "../contexts/ConnectionContext";
 
+const PROVIDERS = [
+  { value: "gcp", label: "Google Cloud (GCP)", enabled: true },
+  { value: "aws", label: "Amazon Web Services (AWS)", enabled: false },
+  { value: "azure", label: "Microsoft Azure", enabled: false },
+  { value: "k8s", label: "Kubernetes (K8s)", enabled: false },
+] as const;
+
+type Provider = (typeof PROVIDERS)[number]["value"];
+
 export function Onboarding() {
   const navigate = useNavigate();
   const { setConnection } = useConnection();
-  const [provider] = useState<"gcp">("gcp");
+  const [provider, setProvider] = useState<Provider>("gcp");
   const [json, setJson] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,20 +45,26 @@ export function Onboarding() {
           </h1>
           <div className="rounded-xl bg-white/5 border border-white/10 p-5 space-y-5 text-sm">
             <div>
-              <h2 className="font-medium text-white mb-2">1. Get GCP credentials (step by step)</h2>
+              <h2 className="font-medium text-white mb-2">1. Create a service account</h2>
               <ol className="list-decimal list-inside space-y-1.5 text-trim-muted">
-                <li>In Google Cloud Console, go to <strong className="text-white">IAM & Admin → Service Accounts</strong>.</li>
-                <li>Create a service account (or pick an existing one) in the project you want Trim to analyze.</li>
-                <li>Grant these roles: <strong className="text-white">Compute Viewer</strong>, <strong className="text-white">Monitoring Viewer</strong>, <strong className="text-white">Billing Account Viewer</strong>, <strong className="text-white">Project Viewer</strong>.</li>
-                <li>Open the service account → <strong className="text-white">Keys</strong> → Add key → Create new key → <strong className="text-white">JSON</strong>. Download the file.</li>
-                <li>Paste the entire JSON in the box on the right (must include <code className="bg-white/10 px-1 rounded">type</code>, <code className="bg-white/10 px-1 rounded">project_id</code>, <code className="bg-white/10 px-1 rounded">private_key</code>, <code className="bg-white/10 px-1 rounded">client_email</code>).</li>
+                <li>In <strong className="text-white">Google Cloud Console</strong>, select the project you want Trim to analyze.</li>
+                <li>Go to <strong className="text-white">IAM &amp; Admin → Service Accounts</strong>. Create a service account (or use an existing one).</li>
+                <li>Grant it these roles: <strong className="text-white">Compute Viewer</strong>, <strong className="text-white">Monitoring Viewer</strong>, <strong className="text-white">Billing Account Viewer</strong>, <strong className="text-white">Project Viewer</strong>.</li>
               </ol>
             </div>
             <div>
-              <h2 className="font-medium text-white mb-2">2. Set up billing</h2>
+              <h2 className="font-medium text-white mb-2">2. Set up billing (before creating the key)</h2>
               <ol className="list-decimal list-inside space-y-1.5 text-trim-muted">
-                <li><strong className="text-white">Link a billing account:</strong> In GCP go to <strong className="text-white">Billing</strong> → select your project → Link a billing account. Trim needs this to show account name and currency.</li>
-                <li><strong className="text-white">Cost breakdown &amp; potential savings (optional):</strong> Enable <strong className="text-white">BigQuery billing export</strong> (Billing → Billing export), create a dataset, give your service account <strong className="text-white">BigQuery Data Viewer</strong> on it. Then add to your JSON: <code className="bg-white/10 px-1 rounded">billing_export_dataset_id</code>. If the dataset is in another project, add <code className="bg-white/10 px-1 rounded">billing_export_project_id</code>. For per-resource savings set <code className="bg-white/10 px-1 rounded">billing_export_use_detailed</code> to <code className="bg-white/10 px-1 rounded">true</code>.</li>
+                <li><strong className="text-white">Link a billing account:</strong> Go to <strong className="text-white">Billing</strong> in the console → <strong className="text-white">Link a billing account</strong> to your project. Trim needs this to show account name and currency.</li>
+                <li><strong className="text-white">Cost breakdown &amp; potential savings (optional):</strong> Go to <strong className="text-white">Billing → Billing export</strong>. Create a BigQuery dataset for the export. Grant your service account <strong className="text-white">BigQuery Data Viewer</strong> (and <strong className="text-white">Job User</strong> if the dataset is in another project) on that dataset. You’ll add the dataset ID to the JSON in step 4.</li>
+              </ol>
+            </div>
+            <div>
+              <h2 className="font-medium text-white mb-2">3. Create key and paste into Trim</h2>
+              <ol className="list-decimal list-inside space-y-1.5 text-trim-muted">
+                <li>Back in <strong className="text-white">Service Accounts</strong>, open your account → <strong className="text-white">Keys</strong> → <strong className="text-white">Add key → Create new key → JSON</strong>. Download the file.</li>
+                <li>If you use BigQuery billing export, add to the JSON: <code className="bg-white/10 px-1 rounded">billing_export_dataset_id</code>. If the dataset is in another project, add <code className="bg-white/10 px-1 rounded">billing_export_project_id</code>. For per-resource savings use <code className="bg-white/10 px-1 rounded">billing_export_use_detailed: true</code> (requires detailed export).</li>
+                <li>Paste the entire JSON in the box on the right (must include <code className="bg-white/10 px-1 rounded">type</code>, <code className="bg-white/10 px-1 rounded">project_id</code>, <code className="bg-white/10 px-1 rounded">private_key</code>, <code className="bg-white/10 px-1 rounded">client_email</code>), then click Connect.</li>
               </ol>
             </div>
           </div>
@@ -57,7 +72,23 @@ export function Onboarding() {
 
         {/* Right: form */}
         <div>
-          <p className="text-trim-muted text-sm mb-2">Service account JSON</p>
+          <label className="block text-trim-muted text-sm mb-2">Provider</label>
+          <select
+            value={provider}
+            onChange={(e) => {
+              setProvider(e.target.value as Provider);
+              setJson("");
+              setError("");
+            }}
+            className="w-full mb-5 py-2.5 pl-3 pr-8 rounded-xl bg-white border border-white/20 text-black text-sm focus:outline-none focus:ring-2 focus:ring-white/50"
+          >
+            {PROVIDERS.map((p) => (
+              <option key={p.value} value={p.value} disabled={!p.enabled}>
+                {p.label}{!p.enabled ? " (coming soon)" : ""}
+              </option>
+            ))}
+          </select>
+          <p className="text-trim-muted text-sm mb-2">Credentials (JSON)</p>
           <textarea
             value={json}
             onChange={(e) => setJson(e.target.value)}
