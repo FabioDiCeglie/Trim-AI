@@ -50,7 +50,7 @@ export function Overview() {
   );
 
   return (
-    <div className="space-y-8 max-w-6xl">
+    <div className="space-y-8 max-w-6xl mx-auto">
 
       <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Provider Overview</h1>

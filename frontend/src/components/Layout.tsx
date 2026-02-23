@@ -6,11 +6,11 @@ export function Layout() {
 
   return (
     <div className="min-h-screen bg-trim-base">
-      <div className="flex justify-end p-3">
+      <div className="flex justify-end px-8 py-5 pl-12">
         <button
           type="button"
           onClick={clearConnection}
-          className="text-sm text-trim-muted hover:text-white"
+          className="text-sm text-trim-muted hover:text-white py-2 px-3"
         >
           Disconnect
         </button>
