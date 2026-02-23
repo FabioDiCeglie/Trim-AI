@@ -68,18 +68,19 @@ Connect with a GCP service account that has Compute Viewer, Monitoring Viewer, B
 
 ## Run locally
 
+**Env first:**  
+- **Worker:** copy `worker/.dev.vars.example` to `worker/.dev.vars` and set `ENCRYPTION_KEY` (e.g. `python3 -c "import os,base64; print(base64.b64encode(os.urandom(32)).decode())"`).  
+- **Frontend:** create `frontend/.env` with `VITE_API_URL=http://localhost:8787` (see `frontend/.env.example`).
+
 ```bash
 # Worker (from repo root)
 cd worker
-cp .dev.vars.example .dev.vars   # add ENCRYPTION_KEY
 npx wrangler dev
 
-# Frontend
+# Frontend (another terminal)
 cd frontend
 npm install && npm run dev
 ```
-
-Set `VITE_API_URL=http://localhost:8787` in the frontend if needed (see `.env.example`).
 
 ---
 
