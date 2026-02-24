@@ -66,9 +66,20 @@ export const api = {
     return request<Overview>(url);
   },
 
-  chat: (message: string) =>
-    request<ChatResponse>("/api/v1/chat", {
-      method: "POST",
-      body: { message },
-    }),
+  chat: (message: string, demo?: boolean, project?: string | null) => {
+    const body: Record<string, unknown> = { message };
+    if (demo) body.demo = true;
+    if (project) body.project = project;
+    return request<ChatResponse>("/api/v1/chat", { method: "POST", body });
+  },
+
+  demoProjects: () =>
+    request<Project[]>("/api/v1/demo/projects"),
+
+  demoOverview: (projectId?: string | null) => {
+    const url = projectId
+      ? `/api/v1/demo/overview?project=${encodeURIComponent(projectId)}`
+      : "/api/v1/demo/overview";
+    return request<Overview>(url);
+  },
 };
