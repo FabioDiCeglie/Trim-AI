@@ -1,19 +1,22 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { useConnection } from "../contexts/ConnectionContext";
 import type { Overview as OverviewType, Project } from "../types";
 
 export function Overview() {
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const { demo, selectedProjectId, setSelectedProjectId } = useConnection();
 
   const { data: projects = [] } = useQuery<Project[]>({
-    queryKey: ["projects"],
-    queryFn: () => api.projects(),
+    queryKey: ["projects", demo],
+    queryFn: () => (demo ? api.demoProjects() : api.projects()),
   });
 
   const { data, isLoading, error } = useQuery<OverviewType>({
-    queryKey: ["overview", selectedProjectId],
-    queryFn: () => api.overview(selectedProjectId ?? undefined),
+    queryKey: ["overview", selectedProjectId, demo],
+    queryFn: () =>
+      demo
+        ? api.demoOverview(selectedProjectId)
+        : api.overview(selectedProjectId ?? undefined),
   });
 
   if (isLoading) {

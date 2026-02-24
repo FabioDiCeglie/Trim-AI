@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { api } from "../api/client";
+import { useConnection } from "../contexts/ConnectionContext";
 
 interface Message {
   role: "user" | "assistant";
@@ -7,6 +8,7 @@ interface Message {
 }
 
 export function Chat() {
+  const { demo, selectedProjectId } = useConnection();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -24,7 +26,7 @@ export function Chat() {
     setMessages((m) => [...m, { role: "user", content: text }]);
     setLoading(true);
     try {
-      const { reply } = await api.chat(text);
+      const { reply } = await api.chat(text, demo || undefined, selectedProjectId);
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
     } catch (e) {
       setMessages((m) => [
