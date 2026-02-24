@@ -1,3 +1,5 @@
+import type { Project, Overview, ChatResponse } from "../types";
+
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8787";
 
 function getConnectionId(): string | null {
@@ -54,18 +56,18 @@ export const api = {
   projects: () => {
     const provider = getProvider();
     if (!provider) throw new Error("No provider");
-    return request<import("../types").Project[]>(`/api/v1/${provider}/projects`);
+    return request<Project[]>(`/api/v1/${provider}/projects`);
   },
 
   overview: (projectId?: string | null) => {
     const provider = getProvider();
     if (!provider) throw new Error("No provider");
     const url = projectId ? `/api/v1/${provider}/overview?project=${encodeURIComponent(projectId)}` : `/api/v1/${provider}/overview`;
-    return request<import("../types").Overview>(url);
+    return request<Overview>(url);
   },
 
   chat: (message: string) =>
-    request<import("../types").ChatResponse>("/api/v1/chat", {
+    request<ChatResponse>("/api/v1/chat", {
       method: "POST",
       body: { message },
     }),
