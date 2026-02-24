@@ -7,6 +7,7 @@ Trim is a dashboard that scans your cloud and highlights what’s wasting money:
 ```mermaid
 flowchart LR
   subgraph you["You"]
+    Z[Try Demo]
     A[Connect GCP]
     B[Overview]
     C[Chat]
@@ -16,16 +17,20 @@ flowchart LR
     E[Worker]
     G[RAG context]
     H[Workers AI]
+    I[Mock data]
   end
   subgraph cloud["Cloud"]
     F[Compute · Billing · Metrics]
   end
+  Z --> D
   A --> D
   B --> D
   C --> D
   D --> E
   E --> F
   F -.->|waste + costs| E
+  E --> I
+  I -.->|demo overview| E
   E --> G
   G -->|overview + highlights + billing| H
   H -.->|answers| E
@@ -36,6 +41,7 @@ flowchart LR
 
 ## What it does
 
+- **Demo mode** — click "Try Demo" on the landing page to explore Trim with mock data (two sample projects, waste highlights, billing) and AI chat — no credentials needed.
 - **Connects** to your GCP project via a service account (credentials encrypted and stored in Cloudflare KV).
 - **Surfaces waste** — stopped VMs still billing, disks with no attachment, low CPU/RAM instances, reserved but unassigned IPs.
 - **Billing view** — top services by cost, optional BigQuery export for potential savings.
@@ -62,7 +68,7 @@ The backend follows **hexagonal architecture** (ports & adapters): the `CloudPro
 - **Live app:** [trim-frontend.pages.dev](https://trim-ai.pages.dev/) *(or your Pages URL)*  
 - **API:** [trim-worker.*.workers.dev](https://trim-worker.fabiodiceglie.workers.dev)
 
-Connect with a GCP service account that has Compute Viewer, Monitoring Viewer, Billing Account Viewer, and Project Viewer.
+No account needed — hit **Try Demo** to explore with sample data. Or connect with a GCP service account that has Compute Viewer, Monitoring Viewer, Billing Account Viewer, and Project Viewer.
 
 ---
 
@@ -91,7 +97,7 @@ trim/
 ├── worker/           # Cloudflare Worker — connect, GCP provider, chat
 │   └── src/
 │       ├── entry.py           # Router
-│       ├── routes/            # connect, health, chat
+│       ├── routes/            # connect, health, chat, demo
 │       ├── providers/gcp/     # compute, metrics, billing, overview
 │       └── services/          # credentials (KV), crypto (AES-GCM)
 └── frontend/         # React app — onboarding, overview, chat
