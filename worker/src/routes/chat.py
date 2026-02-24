@@ -12,7 +12,7 @@ from workers import Response
 from services import CredentialService
 from providers import get_provider
 from utils import error, ok 
-from routes.demo import DEMO_OVERVIEW_ALL
+from routes.demo import _get_demo_overview
 
 
 def _condense_overview(overview: dict) -> str:
@@ -83,9 +83,10 @@ async def chat(env, request) -> Response:
         return error("Missing or empty 'message'", 400)
 
     is_demo = bool(body.get("demo"))
+    project_id = body.get("project") or None
 
     if is_demo:
-        overview = DEMO_OVERVIEW_ALL
+        overview = _get_demo_overview(project_id)
     else:
         creds = await CredentialService(env).resolve(request)
         if creds is None:
@@ -97,7 +98,7 @@ async def chat(env, request) -> Response:
             return error(f"Unknown provider: {provider_name}", 400)
 
         try:
-            overview = await provider.get_overview(request)
+            overview = await provider.get_overview(request, project_id=project_id)
         except Exception as e:
             return error(f"Failed to fetch overview: {e}", 500)
 

@@ -106,6 +106,7 @@ OPENAPI_SPEC = {
                                 "properties": {
                                     "message": {"type": "string", "description": "User question"},
                                     "demo": {"type": "boolean", "description": "When true, skip auth and use mock overview data as AI context", "default": False},
+                                    "project": {"type": "string", "description": "Demo project ID (only used when demo=true). Omit for all-projects context."},
                                 },
                             }
                         }
