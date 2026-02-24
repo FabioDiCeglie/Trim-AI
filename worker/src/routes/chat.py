@@ -11,7 +11,8 @@ from pyodide.ffi import to_js
 from workers import Response
 from services import CredentialService
 from providers import get_provider
-from utils import error, ok
+from utils import error, ok 
+from routes.demo import DEMO_OVERVIEW_ALL
 
 
 def _condense_overview(overview: dict) -> str:
@@ -81,19 +82,24 @@ async def chat(env, request) -> Response:
     if not message:
         return error("Missing or empty 'message'", 400)
 
-    creds = await CredentialService(env).resolve(request)
-    if creds is None:
-        return error("Missing or invalid Authorization header", 401)
+    is_demo = bool(body.get("demo"))
 
-    provider_name = creds.get("provider")
-    provider = get_provider(provider_name, creds.get("credentials") or {})
-    if provider is None:
-        return error(f"Unknown provider: {provider_name}", 400)
+    if is_demo:
+        overview = DEMO_OVERVIEW_ALL
+    else:
+        creds = await CredentialService(env).resolve(request)
+        if creds is None:
+            return error("Missing or invalid Authorization header", 401)
 
-    try:
-        overview = await provider.get_overview(request)
-    except Exception as e:
-        return error(f"Failed to fetch overview: {e}", 500)
+        provider_name = creds.get("provider")
+        provider = get_provider(provider_name, creds.get("credentials") or {})
+        if provider is None:
+            return error(f"Unknown provider: {provider_name}", 400)
+
+        try:
+            overview = await provider.get_overview(request)
+        except Exception as e:
+            return error(f"Failed to fetch overview: {e}", 500)
 
     context = _condense_overview(overview)
     messages = _build_messages(context, message)

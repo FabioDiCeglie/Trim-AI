@@ -9,6 +9,7 @@ OPENAPI_SPEC = {
         {"name": "Health", "description": "Service health"},
         {"name": "Connect", "description": "Provider credential management"},
         {"name": "Providers", "description": "Cloud provider data endpoints"},
+        {"name": "Demo", "description": "Try-it-out endpoints — no authentication required"},
     ],
     "paths": {
         "/api/v1/health": {
@@ -102,7 +103,10 @@ OPENAPI_SPEC = {
                             "schema": {
                                 "type": "object",
                                 "required": ["message"],
-                                "properties": {"message": {"type": "string", "description": "User question"}},
+                                "properties": {
+                                    "message": {"type": "string", "description": "User question"},
+                                    "demo": {"type": "boolean", "description": "When true, skip auth and use mock overview data as AI context", "default": False},
+                                },
                             }
                         }
                     },
@@ -230,6 +234,48 @@ OPENAPI_SPEC = {
                 "responses": {
                     "200": {"description": "Overview with compute, metrics, billing, summary"},
                     "401": {"description": "Missing or invalid Authorization header", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+                },
+            }
+        },
+        "/api/v1/demo/projects": {
+            "get": {
+                "tags": ["Demo"],
+                "summary": "List demo projects",
+                "description": "Returns two mock projects (acme-prod and acme-staging) for the try-it-out flow. No authentication required.",
+                "operationId": "demoProjects",
+                "responses": {
+                    "200": {
+                        "description": "List of mock projects",
+                        "content": {
+                            "application/json": {
+                                "schema": {"type": "array", "items": {"$ref": "#/components/schemas/Project"}},
+                                "example": [
+                                    {"id": "demo-project-prod", "name": "acme-prod", "provider": "gcp"},
+                                    {"id": "demo-project-staging", "name": "acme-staging", "provider": "gcp"},
+                                ],
+                            }
+                        },
+                    },
+                },
+            }
+        },
+        "/api/v1/demo/overview": {
+            "get": {
+                "tags": ["Demo"],
+                "summary": "Demo dashboard overview",
+                "description": "Returns mock overview data for the try-it-out flow. Supports ?project= to filter by demo project. No authentication required.",
+                "operationId": "demoOverview",
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "query",
+                        "required": False,
+                        "schema": {"type": "string", "enum": ["demo-project-prod", "demo-project-staging"]},
+                        "description": "Filter by demo project. Omit for aggregated all-projects view.",
+                    },
+                ],
+                "responses": {
+                    "200": {"description": "Mock overview with summary, highlights, and billing"},
                 },
             }
         },

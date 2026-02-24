@@ -1,6 +1,6 @@
 from urllib.parse import parse_qs, urlparse
 from workers import Response, Request
-from routes import health, docs, openapi_json, connect, chat
+from routes import health, docs, openapi_json, connect, chat, demo_overview, demo_projects
 from services import CredentialService
 from providers import get_provider
 from utils import error
@@ -40,6 +40,12 @@ async def on_fetch(request: Request, env) -> Response:
 
     if path == "/api/v1/chat" and method == "POST":
         return with_cors(await chat(env, request))
+
+    if path == "/api/v1/demo/projects" and method == "GET":
+        return with_cors(await demo_projects())
+
+    if path == "/api/v1/demo/overview" and method == "GET":
+        return with_cors(await demo_overview(request))
 
     # ── Provider routes: /api/v1/:provider/:resource ─────────────────
     parts = path.strip("/").split("/")  # ["api", "v1", "<provider>", "<resource>"]
