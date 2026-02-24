@@ -14,7 +14,7 @@ type Provider = (typeof PROVIDERS)[number]["value"];
 
 export function Onboarding() {
   const navigate = useNavigate();
-  const { setConnection } = useConnection();
+  const { setConnection, enterDemo } = useConnection();
   const [provider, setProvider] = useState<Provider>("gcp");
   const [json, setJson] = useState("");
   const [error, setError] = useState("");
@@ -106,6 +106,22 @@ export function Onboarding() {
             className="mt-6 w-full py-3 px-4 bg-white text-black font-semibold rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:pointer-events-none"
           >
             {loading ? "Connecting…" : "Connect"}
+          </button>
+          <div className="mt-4 flex items-center gap-3">
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="text-trim-muted text-xs">or</span>
+            <div className="flex-1 h-px bg-white/10" />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              enterDemo();
+              navigate("/overview", { replace: true });
+            }}
+            disabled={loading}
+            className="mt-4 w-full py-3 px-4 border border-white/20 text-white font-semibold rounded-full hover:bg-white/10 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+          >
+            Try Demo
           </button>
         </div>
       </div>
