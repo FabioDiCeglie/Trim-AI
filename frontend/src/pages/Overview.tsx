@@ -60,18 +60,23 @@ export function Overview() {
         {projects.length > 0 && (
           <label className="flex items-center gap-2">
             <span className="text-trim-muted text-sm whitespace-nowrap">Project</span>
-            <select
-              value={selectedProjectId ?? ""}
-              onChange={(e) => setSelectedProjectId(e.target.value || null)}
-              className="project-select rounded-lg border border-white/10 text-sm py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-trim-green min-w-[12rem]"
-            >
-              <option value="">All projects</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <div className="relative inline-flex">
+              <select
+                value={selectedProjectId ?? ""}
+                onChange={(e) => setSelectedProjectId(e.target.value || null)}
+                className="project-select appearance-none rounded-lg border border-white/10 text-sm py-2 pl-3 pr-7 focus:outline-none focus:ring-2 focus:ring-trim-green"
+              >
+                <option value="">All projects</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-trim-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </label>
         )}
       </section>
