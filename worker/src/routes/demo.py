@@ -26,7 +26,7 @@ DEMO_OVERVIEW = {
         {"id": "total_resources", "label": "Total resources", "value": 24},
         {"id": "waste_count", "label": "Waste", "value": 3, "sublabel": "need attention"},
         {"id": "with_metrics", "label": "With metrics", "value": 18},
-        {"id": "potential_savings", "label": "Potential savings", "value": "142", "sublabel": "USD/month"},
+        {"id": "potential_savings", "label": "Potential savings", "value": "48.6", "sublabel": "USD/month"},
     ],
     "highlights": [
         {
@@ -62,7 +62,7 @@ DEMO_OVERVIEW = {
     "billing": {
         "billing_account_display_name": "My Billing Account",
         "currency_code": "USD",
-        "potential_savings": {"value": 142, "currency": "USD"},
+        "potential_savings": {"value": 48.6, "currency": "USD"},
         "top_services": [
             {"service": "Compute Engine", "cost": 412.5},
             {"service": "Cloud Storage", "cost": 89.2},
@@ -135,7 +135,7 @@ DEMO_OVERVIEW_ALL = {
         {"id": "total_resources", "label": "Total resources", "value": 32},
         {"id": "waste_count", "label": "Waste", "value": 5, "sublabel": "need attention"},
         {"id": "with_metrics", "label": "With metrics", "value": 24},
-        {"id": "potential_savings", "label": "Potential savings", "value": "166", "sublabel": "USD/month"},
+        {"id": "potential_savings", "label": "Potential savings", "value": "72.6", "sublabel": "USD/month"},
     ],
     "highlights": DEMO_OVERVIEW["highlights"] + DEMO_OVERVIEW_STAGING["highlights"],
     "compute": [],
@@ -143,7 +143,7 @@ DEMO_OVERVIEW_ALL = {
     "billing": {
         "billing_account_display_name": "My Billing Account",
         "currency_code": "USD",
-        "potential_savings": {"value": 166, "currency": "USD"},
+        "potential_savings": {"value": 72.6, "currency": "USD"},
         "top_services": [
             {"service": "Compute Engine", "cost": 568.7},
             {"service": "Cloud Storage", "cost": 121.3},
